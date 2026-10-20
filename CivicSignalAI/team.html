@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team dashboard — CivicSignal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/team-dashboard.css">
+  <script defer src="/static/js/nav.js"></script>
+  <script defer src="/static/js/api-client.js"></script>
+  <script defer src="/static/js/team-dashboard.js"></script>
+</head>
+<body class="team-page">
+  <header class="dashboard-topbar">
+    <a class="dashboard-brand" href="/team" aria-label="CivicSignal AI team dashboard">CivicSignal <span>AI</span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="team-navigation" aria-label="Open navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="team-navigation" class="dashboard-nav" aria-label="Main navigation" hidden>
+      <a href="/team">Team dashboard</a>
+      <a href="/team-login">Team Login</a>
+    </nav>
+    <button id="team-logout" class="button button--secondary" type="button">Sign out</button>
+  </header>
+
+  <main class="dashboard-main">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow eyebrow--blue">Operations workspace</p>
+          <h1>Team dashboard</h1>
+        </div>
+        <div class="toolbar">
+          <label for="report-search">Search reports
+            <input id="report-search" type="search" placeholder="ID, title, description, location">
+          </label>
+          <label for="category-filter">Category
+            <select id="category-filter">
+              <option value="all">All categories</option>
+              <option value="damaged_road">Potholes / road damage</option>
+              <option value="potholes">Potholes</option>
+              <option value="water_leak">Water leaks</option>
+              <option value="overflowing_garbage">Garbage and waste</option>
+              <option value="broken_streetlight">Street lighting</option>
+              <option value="unsafe_sidewalk">Unsafe sidewalks</option>
+              <option value="drainage_waterlogging">Drainage / waterlogging</option>
+              <option value="damaged_public_property">Public property</option>
+              <option value="other">Other civic issue</option>
+            </select>
+          </label>
+          <label for="status-filter">Filter by status
+            <select id="status-filter">
+              <option value="all">All statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="acknowledged">Under review</option>
+              <option value="in_progress">In progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <label for="submitted-after">Submitted after
+            <input id="submitted-after" type="date">
+          </label>
+          <button id="refresh-reports" class="button button--primary" type="button">Refresh reports</button>
+        </div>
+      </header>
+
+      <section class="summary-grid" aria-label="Report summary cards">
+        <article class="summary-card"><span>Total reports</span><strong id="summary-total">0</strong></article>
+        <article class="summary-card summary-card--submitted"><span>Submitted</span><strong id="summary-submitted">0</strong></article>
+        <article class="summary-card"><span>Under review</span><strong id="summary-review">0</strong></article>
+        <article class="summary-card summary-card--progress"><span>In progress</span><strong id="summary-progress">0</strong></article>
+        <article class="summary-card summary-card--resolved"><span>Resolved</span><strong id="summary-resolved">0</strong></article>
+        <article class="summary-card"><span>Rejected</span><strong id="summary-rejected">0</strong></article>
+      </section>
+
+      <p id="dashboard-state" class="notice" role="status" aria-live="polite">Preparing dashboard…</p>
+
+      <section class="dashboard-grid">
+        <div class="list-panel">
+          <div class="panel-header"><h2>Reports</h2></div>
+          <div id="report-list" class="report-list" aria-label="Citizen reports" aria-live="polite"></div>
+        </div>
+        <aside id="report-detail" class="detail-panel" aria-live="polite"></aside>
+      </section>
+  </main>
+</body>
+</html>

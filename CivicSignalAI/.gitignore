@@ -1,0 +1,17 @@
+/devpost/learner-profile.md
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite3
+data/private-uploads/
+*.log
+*.tmp
+.env
+.env.*
+!.env.example
+/SUBMISSION_AUDIT.md
+/SUBMISSION_PHASE2_PLAN.md

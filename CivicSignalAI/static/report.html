@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#252D33">
+  <title>Report an issue | CivicSignal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script defer src="/static/js/citizen-session.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script type="module" src="/static/js/app.js"></script>
+</head>
+<body class="public-page report-page">
+  <header class="site-header">
+    <a class="wordmark" href="/home" aria-label="CivicSignal AI home">CivicSignal <span>AI</span></a>
+    <nav class="top-nav" aria-label="Main navigation">
+      <a href="/home">Home</a>
+      <a class="is-current" href="/report">Report an Issue</a>
+      <a href="/tracking.html">Track a Report</a>
+      <a href="/team-login">Team Login</a>
+      <button class="nav-logout" type="button" data-citizen-logout>Sign out</button>
+    </nav>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+  <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation">
+    <a href="/home">Home</a>
+    <a href="/report">Report an Issue</a>
+    <a href="/tracking.html">Track a Report</a>
+    <a href="/team-login">Team Login</a>
+    <button class="nav-logout" type="button" data-citizen-logout>Sign out</button>
+  </nav>
+
+  <main class="home-shell">
+    <section id="report-section" class="report-layout" aria-label="Create a report">
+      <div class="report-form-panel">
+        <div class="form-header">
+          <div>
+            <p class="eyebrow">Civic issue reporting</p>
+            <h1>Tell us what needs attention.</h1>
+          </div>
+          <div class="stepper" aria-label="Form stages">
+            <span class="step-pill is-active" data-step-indicator="1">1. Issue</span>
+            <span class="step-pill" data-step-indicator="2">2. Details</span>
+            <span class="step-pill" data-step-indicator="3">3. Review</span>
+          </div>
+        </div>
+
+        <form id="report-form" class="report-form" novalidate>
+          <div class="report-step" data-report-step="1">
+          <div class="field field--wide">
+            <label for="report-title">Issue title</label>
+            <input id="report-title" name="title" type="text" maxlength="120" required placeholder="Short summary of the issue">
+          </div>
+          <div class="field field--wide">
+            <label for="category">Issue category</label>
+            <select id="category" name="category" required>
+              <option value="">Choose a category</option>
+              <option value="overflowing_garbage">Overflowing garbage</option>
+              <option value="broken_streetlight">Broken streetlight</option>
+              <option value="damaged_road">Damaged road</option>
+              <option value="water_leak">Water leak</option>
+              <option value="unsafe_sidewalk">Unsafe sidewalk</option>
+              <option value="potholes">Potholes</option>
+              <option value="drainage_waterlogging">Drainage and waterlogging</option>
+              <option value="damaged_public_property">Damaged public property</option>
+              <option value="other">Other civic issue</option>
+            </select>
+          </div>
+          <div class="field field--wide">
+            <label for="description">Describe what happened</label>
+            <textarea id="description" name="description" rows="5" minlength="1" maxlength="2000" required aria-describedby="description-help"></textarea>
+            <div class="field-meta">
+              <span id="description-help">A short, clear description helps the team understand the issue.</span>
+              <span id="description-count">0 / 2000</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="issue-next-button" class="button button-primary" type="button">Continue to location</button>
+          </div>
+          </div>
+
+          <div class="report-step" data-report-step="2" hidden>
+          <div class="field field--wide">
+            <label for="area">Area or neighbourhood</label>
+            <input id="area" name="area" type="text" maxlength="120" placeholder="Neighbourhood or district">
+          </div>
+          <div class="field field--wide">
+            <div class="field-header">
+              <label for="landmark">Street, landmark, or address</label>
+              <button id="geo-button" class="tiny-button" type="button">Detect My Location</button>
+            </div>
+            <input id="landmark" name="landmark" type="text" maxlength="200" autocomplete="street-address" placeholder="Street, intersection, park, or nearby place" aria-describedby="landmark-help">
+            <div class="field-meta">
+              <span id="landmark-help">GPS is requested only after you click Detect My Location and is used only for this report. Manual address entry is available.</span>
+              <span id="location-status" class="location-status" aria-live="polite">Location access is optional.</span>
+            </div>
+          </div>
+          <div class="field field--wide">
+            <div class="field-header"><label>Issue location map</label><span id="coordinate-display">No coordinates selected</span></div>
+            <div id="report-map" class="report-map" role="application" aria-label="Select issue location on map"></div>
+            <button id="clear-location" class="tiny-button" type="button">Use address only</button>
+            <input id="latitude" name="latitude" type="hidden">
+            <input id="longitude" name="longitude" type="hidden">
+            <label id="location-confirm-wrap" class="location-confirm" hidden>
+              <input id="location-confirmed" type="checkbox">
+              <span>I confirm this marker is at the issue location.</span>
+            </label>
+          </div>
+          <div class="field field--wide">
+            <label for="report-images">Issue photos (optional, up to 4; 5 MB each)</label>
+            <input id="report-images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+            <div id="image-previews" class="image-previews" aria-live="polite"></div>
+            <p id="upload-status" class="field-meta" role="status" aria-live="polite"></p>
+          </div>
+          <div class="form-actions">
+            <button id="location-back-button" class="button button-secondary" type="button">Back</button>
+            <button id="preview-button" class="button button-secondary" type="button" disabled>Preview analysis</button>
+            <button id="review-next-button" class="button button-primary" type="button">Review report</button>
+          </div>
+          </div>
+
+          <div class="report-step" data-report-step="3" hidden>
+            <section id="report-review" class="report-review" aria-live="polite"></section>
+            <div class="form-actions">
+              <button id="review-back-button" class="button button-secondary" type="button">Back to details</button>
+              <button id="submit-button" class="button button-primary" type="submit" disabled>Submit report</button>
+            </div>
+          </div>
+          <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <aside id="analysis-panel" class="analysis-panel" aria-labelledby="analysis-title" aria-live="polite" hidden>
+        <p id="analysis-source" class="analysis-source">Rule-based analysis</p>
+        <h2 id="analysis-title">Review the suggestions</h2>
+        <div class="analysis-item"><h3>Summary</h3><p id="analysis-summary"></p></div>
+        <div class="analysis-pair">
+          <div class="analysis-item"><h3>Category suggestion</h3><p id="analysis-category"></p></div>
+          <div class="analysis-item"><h3>Priority hint</h3><p id="analysis-priority"></p></div>
+        </div>
+        <div class="analysis-item"><h3>Missing details</h3><ul id="missing-fields"></ul></div>
+        <div class="analysis-item"><h3>Possible duplicates</h3><ul id="duplicate-suggestions"></ul></div>
+      </aside>
+      <section id="created-panel" class="created-panel" role="status" aria-live="polite" hidden></section>
+    </section>
+  </main>
+  <footer class="site-footer"><a href="/home">CivicSignal AI</a><a href="/tracking.html">Track a report</a></footer>
+</body>
+</html>

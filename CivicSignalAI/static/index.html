@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#252D33">
+  <title>CivicSignal AI | About</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script defer src="/static/js/citizen-session.js"></script>
+  <script defer src="/static/js/nav.js"></script>
+</head>
+<body class="portal-home">
+  <header class="site-header">
+    <a class="wordmark" href="/home" aria-label="CivicSignal AI home">CivicSignal <span>AI</span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="home-navigation" class="top-nav" aria-label="Main navigation">
+      <a href="#about">About</a>
+      <a class="home-nav-action" href="/report">Report a Problem</a>
+      <a href="/tracking.html">Track a Report</a>
+      <a href="/team-login">Team Login</a>
+      <button class="nav-logout" type="button" data-citizen-logout>Sign out</button>
+    </nav>
+  </header>
+  <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Mobile navigation">
+    <a href="#about">About</a>
+    <a href="/report">Report a Problem</a>
+    <a href="/tracking.html">Track a Report</a>
+    <a href="/team-login">Team Login</a>
+    <button class="nav-logout" type="button" data-citizen-logout>Sign out</button>
+  </nav>
+  <main class="about-home" id="about">
+    <p class="about-home__eyebrow">About</p>
+    <h1>CivicSignal AI</h1>
+    <p class="about-home__copy">CivicSignal AI connects residents with the teams responsible for maintaining safer, cleaner, and better neighbourhoods. Report a local civic issue, share its location, and follow the response through a clear, accountable process.</p>
+  </main>
+</body>
+</html>

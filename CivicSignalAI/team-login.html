@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team access | CivicSignal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="auth-page">
+  <header class="site-header">
+    <a class="wordmark" href="/" aria-label="CivicSignal AI home">CivicSignal <span>AI</span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="auth-navigation" aria-label="Open navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="auth-navigation" class="top-nav" aria-label="Main navigation" hidden>
+      <a href="/">Home</a><a href="/report">Report an Issue</a><a href="/tracking.html">Track a Report</a><a href="/team-login">Team Login</a>
+    </nav>
+  </header>
+  <div class="auth-shell">
+    <aside class="auth-panel auth-panel--light">
+      <div class="brand-row">
+        <a href="/" class="wordmark" aria-label="Back to CivicSignal AI home">CivicSignal <span>AI</span></a>
+      </div>
+
+      <div class="auth-copy">
+        <p class="eyebrow eyebrow--blue">Invitation-only access</p>
+        <h1>Team dashboard access is limited to approved staff.</h1>
+        <p>
+          CivicSignal AI remains public for citizen reporting. Staff or admin access is not auto-granted and no public signup flow is available.
+        </p>
+      </div>
+
+      <form id="team-login-form" class="auth-form">
+        <label for="team-email">Work email</label>
+        <input id="team-email" name="email" type="email" placeholder="name@organization.gov" autocomplete="username" required maxlength="254">
+
+        <label for="team-password">Password</label>
+        <div class="password-wrap">
+          <input id="team-password" name="password" type="password" placeholder="Enter your approved password" autocomplete="current-password" required maxlength="1024">
+          <button class="field-toggle" type="button" aria-label="Show password">Show</button>
+        </div>
+
+        <button class="button button-primary auth-submit" type="submit">Sign in to workspace</button>
+        <p id="team-login-message" class="form-message" role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="auth-links">
+        <a href="/team-signup">How staff access is approved</a>
+        <a href="/">Return to citizen reporting</a>
+      </div>
+    </aside>
+
+    <aside class="auth-panel auth-panel--graphic" aria-label="Civic operations illustration">
+      <div class="city-figure" aria-hidden="true">
+        <div class="city-backdrop"></div>
+        <div class="city-grid"></div>
+        <div class="city-buildings">
+          <span class="building building--short"></span>
+          <span class="building building--tall"></span>
+          <span class="building building--wide"></span>
+          <span class="building building--mid"></span>
+        </div>
+        <div class="data-dots"></div>
+        <div class="status-pill status-pill--live">Local prototype</div>
+      </div>
+      <div class="panel-note">
+        <strong>Approved access only.</strong>
+        <p>Use the existing local staff dashboard and keep all status transitions governed by the backend workflow.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script defer src="/static/js/nav.js"></script>
+  <script defer src="/static/js/team-login.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff access approval | CivicSignal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="auth-page">
+  <header class="site-header">
+    <a class="wordmark" href="/" aria-label="CivicSignal AI home">CivicSignal <span>AI</span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="auth-navigation" aria-label="Open navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="auth-navigation" class="top-nav" aria-label="Main navigation" hidden>
+      <a href="/">Home</a><a href="/report">Report an Issue</a><a href="/tracking.html">Track a Report</a><a href="/team-login">Team Login</a>
+    </nav>
+  </header>
+  <main class="auth-shell auth-shell--stacked">
+    <section class="auth-panel auth-panel--light auth-panel--wide">
+      <div class="brand-row">
+        <a href="/" class="wordmark" aria-label="Back to CivicSignal AI home">CivicSignal <span>AI</span></a>
+      </div>
+
+      <p class="eyebrow eyebrow--blue">Administrator approval required</p>
+      <h1>Request authorized CivicSignal AI access.</h1>
+      <p class="auth-copy">
+        Staff accounts are provisioned directly by an administrator. There is no public registration form, and submitting this page does not create an account or grant access.
+      </p>
+
+      <section class="provisioning-note" aria-labelledby="provisioning-title">
+        <h2 id="provisioning-title">For administrators</h2>
+        <p>Provision an approved staff account from the project environment with <code>python -m app.provision_team_user</code>. Credentials are stored as a scrypt hash.</p>
+        <p>Only share the resulting account through your organization’s approved channel.</p>
+      </section>
+
+      <div class="auth-links">
+        <a href="/team-login">Return to team login</a>
+        <a href="/">Return to citizen reporting</a>
+      </div>
+    </section>
+  </main>
+  <script defer src="/static/js/nav.js"></script>
+</body>
+</html>

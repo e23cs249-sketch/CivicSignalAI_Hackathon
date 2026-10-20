@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Track a report — CivicSignal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="/static/css/tracking.css">
+  <script defer src="/static/js/nav.js"></script>
+  <script defer src="/static/js/api-client.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script defer src="/static/js/tracking.js"></script>
+  <script defer src="/static/js/citizen-session.js"></script>
+</head>
+<body class="tracking-page">
+  <header class="topbar">
+    <a href="/" class="wordmark" aria-label="Back to CivicSignal AI home">CivicSignal <span>AI</span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="tracking-navigation" aria-label="Open navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav id="tracking-navigation" class="top-links" aria-label="Main navigation" hidden>
+      <a href="/">Home</a>
+      <a href="/report">Report an Issue</a>
+      <a href="/tracking.html">Track a Report</a>
+      <a href="/team-login">Team Login</a>
+      <button class="nav-logout" type="button" data-citizen-logout>Sign out</button>
+    </nav>
+  </header>
+
+  <main class="tracking-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow eyebrow--blue">Report status</p>
+        <h1>Track a civic report</h1>
+      </div>
+    </header>
+
+    <section class="my-reports" aria-labelledby="my-reports-title">
+      <div class="my-reports__header">
+        <h2 id="my-reports-title">Your reports</h2>
+        <button id="refresh-my-reports" class="button button--secondary" type="button">Refresh</button>
+      </div>
+      <p id="my-reports-state" class="notice" role="status" aria-live="polite">Loading your reports…</p>
+      <div id="my-report-list" class="my-report-list" aria-live="polite"></div>
+    </section>
+
+    <form id="tracking-form" class="tracking-form">
+      <label for="report-id">Report ID</label>
+      <input id="report-id" name="report-id" type="text" autocomplete="off" required aria-describedby="report-id-help">
+      <button class="button button--primary" type="submit">Track report</button>
+      <p id="report-id-help" class="field-help">Use the exact ID shown when the report was submitted.</p>
+    </form>
+
+    <p id="tracking-state" class="notice" role="status" aria-live="polite" hidden></p>
+    <div id="tracking-result" class="tracking-result" aria-live="polite"></div>
+  </main>
+</body>
+</html>
