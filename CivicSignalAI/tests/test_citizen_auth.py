@@ -8,7 +8,6 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.team_auth import provision_team_user
 
 
 class OAuthResponse:
@@ -32,7 +31,11 @@ class CitizenAuthTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.environment = patch.dict(os.environ, {
-            "CIVICSIGNAL_DATABASE_PATH": str(Path(self.temp.name) / "civicsignal.db")
+            "DATABASE_URL": "",
+            "CIVICSIGNAL_DATABASE_PATH": str(Path(self.temp.name) / "civicsignal.db"),
+            "ADMIN_USERNAME": "test-admin",
+            "ADMIN_PASSWORD": "a-valid-admin-password",
+            "ADMIN_SESSION_SECRET": "test-admin-session-secret-with-32-bytes",
         })
         self.environment.start()
         self.addCleanup(self.environment.stop)
@@ -274,9 +277,8 @@ class CitizenAuthTests(unittest.TestCase):
         )
         self.assertEqual(forbidden_update.status_code, 401)
 
-        provision_team_user("admin@city.test", "a-valid-admin-password")
         admin_login = self.client.post("/api/auth/team/login", json={
-            "email": "admin@city.test",
+            "username": "test-admin",
             "password": "a-valid-admin-password",
         })
         self.assertEqual(admin_login.status_code, 200)

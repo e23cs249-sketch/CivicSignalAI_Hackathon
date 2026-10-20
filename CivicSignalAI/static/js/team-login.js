@@ -1,5 +1,5 @@
 const form = document.querySelector("#team-login-form");
-const emailInput = document.querySelector("#team-email");
+const usernameInput = document.querySelector("#team-username");
 const passwordInput = document.querySelector("#team-password");
 const toggle = document.querySelector(".field-toggle");
 const message = document.querySelector("#team-login-message");
@@ -30,7 +30,7 @@ form?.addEventListener("submit", async (event) => {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email: emailInput.value, password: passwordInput.value }),
+      body: JSON.stringify({ username: usernameInput.value, password: passwordInput.value }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.detail || "Sign-in failed. Please try again.");

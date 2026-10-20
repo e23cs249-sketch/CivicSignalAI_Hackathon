@@ -1,6 +1,5 @@
 """Team workflow and citizen tracking endpoints backed by shared SQLite data."""
 from __future__ import annotations
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -35,7 +34,7 @@ class SQLiteWorkflowRepository:
 def list_team_reports(_: dict[str, str] = Depends(require_team_user)) -> dict[str, object]:
     try:
         return {"reports": database.list_reports()}
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         raise HTTPException(status_code=503, detail="Report database is unavailable.") from None
 
 @router.patch("/api/team/reports/{report_id}/status")
@@ -61,7 +60,7 @@ def update_team_report_status(
         raise HTTPException(status_code=409, detail={"code": "invalid_transition", "message": str(exc)}) from exc
     except ConcurrentTransitionError as exc:
         raise HTTPException(status_code=409, detail={"code": "concurrent_transition", "message": str(exc)}) from exc
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         raise HTTPException(status_code=503, detail="Report database is unavailable.") from None
     return {
         "report_id": result.report_id,
@@ -163,5 +162,5 @@ def get_report_tracking(report_id: str, request: Request) -> dict[str, object]:
                 for item in media
             ],
         }
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         raise HTTPException(status_code=503, detail="Report database is unavailable.") from None

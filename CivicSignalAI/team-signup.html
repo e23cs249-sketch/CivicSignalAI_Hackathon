@@ -25,16 +25,16 @@
         <a href="/" class="wordmark" aria-label="Back to CivicSignal AI home">CivicSignal <span>AI</span></a>
       </div>
 
-      <p class="eyebrow eyebrow--blue">Administrator approval required</p>
-      <h1>Request authorized CivicSignal AI access.</h1>
+      <p class="eyebrow eyebrow--blue">Administrator configuration required</p>
+      <h1>Admin access is configured by the application owner.</h1>
       <p class="auth-copy">
-        Staff accounts are provisioned directly by an administrator. There is no public registration form, and submitting this page does not create an account or grant access.
+        There is no public admin registration. The application owner sets the admin username and password in the server environment before staff can sign in.
       </p>
 
       <section class="provisioning-note" aria-labelledby="provisioning-title">
-        <h2 id="provisioning-title">For administrators</h2>
-        <p>Provision an approved staff account from the project environment with <code>python -m app.provision_team_user</code>. Credentials are stored as a scrypt hash.</p>
-        <p>Only share the resulting account through your organization’s approved channel.</p>
+        <h2 id="provisioning-title">For the application owner</h2>
+        <p>Set <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code>, and a private <code>ADMIN_SESSION_SECRET</code> on the server. Never add these values to frontend code or public environment variables.</p>
+        <p>Share the admin credentials only with authorized staff.</p>
       </section>
 
       <div class="auth-links">

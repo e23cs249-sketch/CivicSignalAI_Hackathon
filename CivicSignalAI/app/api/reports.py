@@ -1,5 +1,4 @@
 import logging
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -7,6 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
+from app import database
 from app.api.auth import current_team_user, require_citizen_user, require_same_origin
 from app.database import (
     attach_citizen_media,
@@ -39,7 +39,7 @@ def preview_report(
 ) -> PreviewResponse:
     try:
         existing_reports = get_duplicate_candidates()
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         logger.exception("Could not read reports for duplicate preview")
         raise HTTPException(status_code=500, detail="Database unavailable.") from None
 
@@ -136,7 +136,7 @@ def create_report(
 
     try:
         create_report_with_initial_event(report, initial_event, citizen_id=citizen["id"])
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         logger.exception("Could not persist report and initial event")
         raise HTTPException(status_code=500, detail="Report could not be saved.") from None
     except Exception:
@@ -204,7 +204,7 @@ def my_reports(citizen: dict[str, str] = Depends(require_citizen_user)) -> dict[
                 _public_media_item(item) for item in get_report_media(str(report["id"]))
             ]
         return {"reports": reports}
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         raise HTTPException(status_code=503, detail="Report database is unavailable.") from None
 
 
@@ -275,5 +275,5 @@ def get_report_image(media_id: str, request: Request) -> FileResponse:
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Image was not found.") from None
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         raise HTTPException(status_code=503, detail="Report database is unavailable.") from None

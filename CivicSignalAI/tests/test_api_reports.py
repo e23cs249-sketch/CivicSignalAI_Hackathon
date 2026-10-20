@@ -37,7 +37,10 @@ class ApiReportTests(unittest.TestCase):
         self.database_path = Path(self.temporary_directory.name) / "civicsignal-test.db"
         self.environment = patch.dict(
             os.environ,
-            {"CIVICSIGNAL_DATABASE_PATH": str(self.database_path)},
+            {
+                "DATABASE_URL": "",
+                "CIVICSIGNAL_DATABASE_PATH": str(self.database_path),
+            },
         )
         self.environment.start()
         self.addCleanup(self.environment.stop)

@@ -1,294 +1,165 @@
 # CivicSignal AI
 
-**A civic issue reporting and tracking prototype connecting residents with authorized response teams.**
+CivicSignal AI is a civic issue reporting and tracking prototype connecting residents with authorized response teams. Residents can register, report local issues with descriptions, locations, and optional photos, then track progress. Authorized administrators can review reports and post status updates through a protected dashboard.
 
-CivicSignal AI is a web application built with FastAPI, SQLite, and HTML, CSS, and JavaScript. Residents can submit civic issues with a confirmed location and optional photos, then track their own reports. Authorized staff can review the same reports, update statuses, and add progress notes or photos through a protected dashboard.
+## Features
 
-## Table of Contents
+- Citizen registration and sign-in with protected report submission and tracking.
+- Civic reports with categories, locations, optional coordinates, and photos.
+- Rule-based report summaries and possible duplicate suggestions.
+- A private report dashboard for status changes, progress notes, and evidence.
+- A private, owner-configured administrator login. Admin credentials and signed sessions do not use the application database.
+- Optional Google and LinkedIn OAuth sign-in for existing citizen accounts.
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [How It Works](#how-it-works)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Run the Application](#run-the-application)
-- [Citizen Sign-up and Login](#citizen-sign-up-and-login)
-- [Staff Account Setup](#staff-account-setup)
-- [Testing](#testing)
-- [Security and Privacy](#security-and-privacy)
-- [Current Limitations](#current-limitations)
-- [Hackathon Submission](#hackathon-submission)
+## Technology and project structure
 
-## Overview
-
-Residents need a clear way to report local problems and follow their progress. CivicSignal AI provides a shared workflow for residents to submit reports and authorized staff to manage responses. Reports can include a description, address or confirmed map location, and supporting photos. A persisted timeline records status changes and updates.
-
-The application also provides rule-based analysis and possible-duplicate suggestions before submission. These are heuristics, not externally generated AI results or verified facts.
-
-### Intended Users
-
-- **Residents:** Create accounts, report civic issues, and track their own submissions.
-- **Authorized staff:** Review reports, update statuses, and document progress.
-- **Evaluators and developers:** Explore a working prototype of a citizen-to-response workflow.
-
-## Key Features
-
-### Citizen Experience
-
-- Citizen registration and login with protected reporting and tracking pages.
-- Report title, category, description, area/address, and optional confirmed coordinates.
-- Leaflet map location selection and optional browser location detection.
-- Optional JPG, PNG, and WebP report photos.
-- Rule-based analysis, missing-detail prompts, and possible-duplicate suggestions.
-- Citizen-owned report listing, status, timeline, and authorized photo access.
-
-### Staff Dashboard
-
-- Protected staff login with password hashing and login throttling.
-- Searchable and filterable report queue.
-- Status updates, progress notes, rejection reasons, and progress-photo uploads.
-- Interactive staff account provisioning from a local command-line utility.
-
-### Data and Privacy
-
-- SQLite persistence for reports, ownership, accounts, sessions, and timeline events.
-- Private image storage outside the publicly served static directory.
-- Server-side image validation and re-encoding, with access checks when images are retrieved.
-
-## How It Works
-
-1. A resident signs up or logs in.
-2. They enter an issue and optionally choose and confirm a location or attach photos.
-3. They review the report and optional rule-based suggestions, then submit it.
-4. The application stores the report, owner, and initial timeline event in SQLite; photos are stored privately.
-5. Authorized staff review the same report in the dashboard and may update its status, add a note, or upload progress photos.
-6. The resident returns to tracking to see the current status, timeline, and permitted evidence.
-
-## Technology Stack
-
-| Component | Technology |
-| --- | --- |
-| Backend | Python, FastAPI, Uvicorn |
-| Database | SQLite via Python's standard-library `sqlite3` |
-| Frontend | HTML, CSS, JavaScript |
-| Map | Leaflet and OpenStreetMap tiles |
-| Image handling | Pillow, `python-multipart` |
-| Tests | Pytest |
-
-## Project Structure
+- Python, FastAPI, and Uvicorn serve the application and API.
+- HTML, CSS, and JavaScript provide the browser interface.
+- SQLite is the local database; PostgreSQL via `DATABASE_URL` is supported for deployed persistence.
+- Pillow and `python-multipart` validate and store images.
+- Pytest runs the backend tests.
 
 ```text
 CivicSignalAI/
-├── app/                    # FastAPI routes, SQLite, auth, workflow, media, analysis
-├── static/                 # Citizen pages, styles, and browser scripts
-├── tests/                  # API, auth, media, persistence, and workflow tests
-├── devpost/
-│   ├── scope.md
-│   ├── prd.md
-│   ├── spec.md
-│   ├── checklist.md
-│   ├── app-map.html
-│   └── submission-draft.md
-├── team-login.html         # Staff sign-in page
-├── team-signup.html        # Staff approval information, not account registration
-├── team.html               # Staff dashboard
-├── tracking.html           # Citizen report tracking
-├── .env.example
-├── .gitignore
+├── app/
+│   ├── api/                 # Citizen/admin auth, reports, team and health routes
+│   ├── services/            # Authentication helpers, analysis, workflow and media
+│   ├── config.py            # Database configuration
+│   ├── database.py          # SQLite/PostgreSQL persistence for app data
+│   ├── migrate_sqlite_to_postgres.py # Optional citizen/report data migration
+│   └── main.py              # FastAPI app, page routes and access guards
+├── data/                    # Local databases and private uploads (not committed)
+├── static/                  # Citizen pages, stylesheets and browser scripts
+├── tests/                   # API, auth, persistence, media and workflow tests
+├── index.py                 # Vercel FastAPI entry point
+├── team-login.html          # Admin sign-in page
+├── team-signup.html         # Admin configuration information; no public signup
+├── team.html                # Protected admin dashboard
 ├── requirements.txt
 └── README.md
 ```
 
-`App.tsx` and `index.css` are retained workspace files but are not part of the active FastAPI serving path. The workspace also contains Devpost Learn Skill Pack files; verify redistribution terms before publishing them.
+## Requirements and local setup
 
-## Prerequisites
-
-- Python 3.11 or newer. This workspace's verified virtual environment uses Python 3.14.7.
-- PowerShell on Windows or an equivalent terminal.
-- A modern web browser.
-- Node.js only for the documented JavaScript syntax checks.
-
-## Installation
-
-Open a terminal in the directory containing `app/`, `static/`, and `requirements.txt`. On Windows PowerShell:
+Use Python 3.11 or newer. In PowerShell, open the project directory (the folder containing `app/`, `static/`, and `requirements.txt`) and run:
 
 ```powershell
-python -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+py -m pip install --upgrade pip
+py -m pip install -r requirements.txt
 ```
 
-If PowerShell blocks activation, invoke the virtual environment's Python directly, for example `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
+Set administrator credentials in the server process environment; they are not stored in the database, source code, or browser code. The password and session-signing key below are entered/generated without putting their values in shell history:
+
+```powershell
+$env:ADMIN_USERNAME = Read-Host "Admin username"
+$securePassword = Read-Host "Admin password" -AsSecureString
+$env:ADMIN_PASSWORD = [System.Net.NetworkCredential]::new("", $securePassword).Password
+$env:ADMIN_SESSION_SECRET = py -3 -c "import secrets; print(secrets.token_urlsafe(48))"
+$env:DATABASE_URL = ""
+$env:CIVICSIGNAL_DATABASE_PATH = Join-Path (Get-Location) "data\civicsignal.db"
+py -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Keep those variables set while the server runs. When finished, stop the server and clear the credentials:
+
+```powershell
+Remove-Item Env:ADMIN_USERNAME, Env:ADMIN_PASSWORD, Env:ADMIN_SESSION_SECRET
+Remove-Item Env:DATABASE_URL, Env:CIVICSIGNAL_DATABASE_PATH
+Remove-Variable securePassword
+```
+
+Open `http://127.0.0.1:8000/` for citizen sign-in or `http://127.0.0.1:8000/team-login` for administrator sign-in. The server does not automatically load `.env` files. `.env.example` lists supported variables but contains no actual secrets.
+
+### Administrator authentication
+
+Set these server-side environment variables:
+
+| Variable | Required value |
+| --- | --- |
+| `ADMIN_USERNAME` | The exact administrator username chosen by the application owner |
+| `ADMIN_PASSWORD` | The corresponding administrator password |
+| `ADMIN_SESSION_SECRET` | A random secret of at least 32 bytes, used to sign the administrator session cookie |
+
+There are no default credentials. If any setting is missing or the session secret is too short, the admin login fails closed and reports that it is not configured. Do not use a `NEXT_PUBLIC_`, `VITE_`, or other client-exposed variable, and never place credentials in HTML, JavaScript, Git, or logs.
+
+The server compares the supplied username and password against the configured values. On success it sets an expiring, signed, `HttpOnly`, `SameSite=Strict` cookie, marked `Secure` on HTTPS/Vercel. Admin login, session checks, and logout do not read or write the database. Direct requests to `/team`, `/team.html`, and admin APIs are checked on the server. Logout clears the browser cookie. Because sessions are stateless, an already copied cookie remains valid until its eight-hour expiry; changing `ADMIN_SESSION_SECRET` invalidates existing cookies.
+
+Citizen account authentication and application data are separate: they continue to use the configured application database. On Vercel, `DATABASE_URL` is still required for citizen accounts, reports, sessions, and workflows; it is **not** used for administrator authentication. The optional `app.migrate_sqlite_to_postgres` utility migrates citizen and report data only. It does not migrate admin credentials or sessions.
 
 ## Configuration
 
-The app reads process environment variables; it does not automatically load a `.env` file. `.env.example` documents the supported settings:
+The app reads process environment variables and does not automatically load `.env`. Variables relevant to local or deployed operation:
 
-| Variable | Purpose | Local default |
-| --- | --- | --- |
-| `CIVICSIGNAL_DATABASE_PATH` | SQLite database location | `./data/civicsignal.db` |
-| `CIVICSIGNAL_COOKIE_SECURE` | Enables the Secure cookie flag for HTTPS | `false` |
-| `CIVICSIGNAL_UPLOAD_DIR` | Private image storage location | `./data/private-uploads` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google OAuth client and exact callback URI | Unset; Google sign-in disabled |
-| `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI` | LinkedIn OAuth client and exact callback URI | Unset; LinkedIn sign-in disabled |
-| `CIVICSIGNAL_OAUTH_STATE_SECRET` | At least 32 bytes used to sign short-lived OAuth state | Unset; provider sign-in disabled |
-
-The defaults work for local development. For HTTPS, set `CIVICSIGNAL_COOKIE_SECURE=true` in the server environment. Keep uploads in persistent private storage outside the public static directory. Never put real secrets in `.env.example` or commit local environment files.
-
-## Run the Application
-
-From the project root, start the development server:
-
-```powershell
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-Open `http://127.0.0.1:8000/` for citizen access. Other routes:
-
-| Route | Purpose |
+| Variable | Purpose |
 | --- | --- |
-| `/` | Citizen sign-up and login |
-| `/home` | Citizen home page after login |
-| `/report` | Protected issue reporting flow |
-| `/tracking.html` | Protected report tracking |
-| `/team-login` | Staff login |
-| `/team-signup` | Staff approval information only |
-| `/team` | Protected staff dashboard |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | Required for admin sign-in; server-only secrets |
+| `DATABASE_URL` | PostgreSQL connection URL for persistent deployed citizen/report data; optional locally |
+| `CIVICSIGNAL_DATABASE_PATH` | SQLite path when `DATABASE_URL` is unset |
+| `CIVICSIGNAL_COOKIE_SECURE` | Forces cookies Secure when `true`; the admin session cookie is always Secure on HTTPS/Vercel, even if this is `false` |
+| `CIVICSIGNAL_UPLOAD_DIR` | Directory for private uploads; local filesystem by default |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Optional Google OAuth for existing citizen accounts |
+| `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI` | Optional LinkedIn OAuth for existing citizen accounts |
+| `CIVICSIGNAL_OAUTH_STATE_SECRET` | Optional OAuth state-signing secret, at least 32 bytes |
 
-Vercel serves this FastAPI application from the repository-root `index.py`, which imports `app.main:app`. The app resolves `static/` relative to `app/main.py` and mounts it at `/static`; keep the Vercel project root set to the folder containing `index.py`, `app/`, and `static/`. The deployed `/api/health` endpoint and static page routes were checked. No Vercel routing rewrite is needed for this existing deployment.
+OAuth provider settings are optional and unrelated to admin login. OAuth authenticates existing citizen accounts; it does not create public administrator accounts.
 
-## Citizen Sign-up and Login
+## Deploy to Vercel
 
-1. Open `http://127.0.0.1:8000/` and choose **Sign up**.
-2. Enter a full name, phone number, and email address.
-3. Set and confirm a password of at least 12 characters, accept the terms, and select **Create account**. Successful registration opens `/home`.
-4. For later visits, choose **Log in**, enter the registered email and password, and submit. Successful login opens `/home`.
+This repository already exposes the FastAPI application through `index.py`; the frontend calls same-origin routes and needs no separate API URL or rewrite. Set the Vercel project **Root Directory** to `CivicSignalAI` (the directory containing `index.py`, `app/`, and `static/`) and use `main` as the Production Branch.
 
-The citizen session is required to submit reports and view the account's reports. Password reset and Google/LinkedIn sign-in are not configured.
+In **Vercel → Project → Settings → Environment Variables**, set the following for **Production** (also set them for Preview if needed):
 
-### Google and LinkedIn Sign-in
+- `ADMIN_USERNAME`: your chosen administrator username.
+- `ADMIN_PASSWORD`: your chosen administrator password.
+- `ADMIN_SESSION_SECRET`: a random secret of at least 32 bytes.
+- `DATABASE_URL`: a PostgreSQL connection URL for persistent citizen and report data.
 
-The authorization-code flows use PKCE, short-lived signed state cookies, server-side token exchange, and verified provider email. Tokens and provider identifiers are not sent to browser JavaScript or persisted. OAuth authenticates an existing active CivicSignal citizen account by its verified email; first create the account through the normal sign-up form using the same email address. A provider cannot create an account or bypass the existing terms acceptance flow. This does not alter the database schema.
+Use a hosted PostgreSQL provider such as Neon if needed. Configure the database separately; do not put its connection string in frontend code. In Vercel Production, leave `CIVICSIGNAL_COOKIE_SECURE` unset or set it to `true`; the admin session cookie is Secure on HTTPS/Vercel even if the variable is mistakenly set to `false`. The `.env.example` value `false` is for local plain-HTTP development only. Do not set `CIVICSIGNAL_DATABASE_PATH` on Vercel. Vercel's function filesystem is not durable, so local SQLite and local private upload files are not suitable for persistent production data.
 
-To enable production sign-in, add these variables in **Vercel Project → Settings → Environment Variables**, selecting the Production environment (and Preview too if you want OAuth previews):
+#### Rate-limit administrator sign-in
 
-| Vercel variable | Value |
-| --- | --- |
-| `GOOGLE_CLIENT_ID` | Client ID from a Google OAuth web application |
-| `GOOGLE_CLIENT_SECRET` | Client secret from that same Google OAuth client |
-| `GOOGLE_REDIRECT_URI` | `https://civic-signal-ai.vercel.app/api/auth/citizen/oauth/google/callback` |
-| `LINKEDIN_CLIENT_ID` | Client ID from your LinkedIn app |
-| `LINKEDIN_CLIENT_SECRET` | Client secret from that same LinkedIn app |
-| `LINKEDIN_REDIRECT_URI` | `https://civic-signal-ai.vercel.app/api/auth/citizen/oauth/linkedin/callback` |
-| `CIVICSIGNAL_OAUTH_STATE_SECRET` | A newly generated random secret of at least 32 bytes; do not reuse an OAuth client secret |
+The application does not use an in-memory or database counter for administrator login attempts. Before enabling public Production admin sign-in, configure a Vercel Firewall rate-limit rule, if available for the project plan:
 
-Generate the state secret locally with `python -c "import secrets; print(secrets.token_urlsafe(48))"` and enter its output directly into Vercel. Do not commit it or paste it into source files.
+- Match the exact path `/api/auth/team/login` and HTTP method `POST`.
+- Rate-limit by source IP, using a conservative request limit and time window supported by the project’s Vercel plan; apply the rate-limit/block action.
+- Do not include request bodies, passwords, or other credentials in rule logs.
+- Check the Vercel Firewall events after enabling the rule and adjust it if legitimate staff sign-ins are blocked.
 
-In **Google Cloud Console**, configure the OAuth consent screen and create an OAuth Client ID of type **Web application**. Add `civic-signal-ai.vercel.app` as an authorized domain and register the exact Google callback URI above under **Authorized redirect URIs**. Request the OpenID Connect `openid`, `email`, and `profile` scopes, and add test users if the consent screen remains in testing mode.
+This rule is configured in Vercel, not by an application environment variable, and is not enabled by this repository. Confirm and enable it in the Vercel project before public Production use; no production configuration was changed as part of this code change. If Firewall rate limiting is unavailable for the project, do not treat this application alone as protected against repeated guesses—choose an approved shared rate-limit service or another deployment-level control before exposing admin sign-in.
 
-In **LinkedIn Developer Portal**, enable the **Sign In with LinkedIn using OpenID Connect** product for the app, register the exact LinkedIn callback URI above under its authorized redirect URLs, and ensure the `openid`, `profile`, and `email` scopes are available.
+If you need to retain existing SQLite citizen/report data, take a backup and review the optional `py -m app.migrate_sqlite_to_postgres --help` tool before using it with `DATABASE_URL` set. It is only for application data, not admin authentication. Existing legacy admin tables in a local database are not used by the app, are not deleted, and are not copied by this utility.
 
-The redirect URI in each Vercel variable must exactly match its provider-console entry, including scheme, host, path, and trailing-slash choice. Save the variables and redeploy. OAuth has not been tested against real providers because credentials and provider-console settings are not available in this workspace; until configured, the buttons return a visible setup message.
+After adding environment variables, deploy the `main` Production branch or redeploy its latest commit so the new settings take effect. No application owner credentials or database connection values are included in this repository. This project does not currently provide a durable object-storage integration for uploaded photos; production photo persistence needs a private durable storage service or a host with persistent disk.
 
-Vercel serverless filesystems are not durable storage. This project currently uses SQLite and local private-file storage; configure a persistent database and private upload store before relying on production account linking, report persistence, or media uploads. No data was migrated or deleted as part of this change.
+## Test the admin login and access controls
 
-## Staff Account Setup
-
-There is no public staff registration endpoint and no default administrator account is seeded at startup. An authorized operator provisions an approved staff account interactively from the project root:
+From the project directory:
 
 ```powershell
-python -m app.provision_team_user
+py -m pytest .\tests -q
+node --check .\static\js\team-login.js
+node --check .\static\js\team-dashboard.js
 ```
 
-The utility prompts for an approved staff work email, a password, and password confirmation. Password entry is hidden and should not be included in a command or shell history. Use the exact approved email and the private password chosen during provisioning at `http://127.0.0.1:8000/team-login`; a successful login opens `/team`.
+With the application running and the three `ADMIN_*` variables configured, verify:
 
-The `/team-signup` page explains staff approval; it does not create an account. Provisioning does not reset or modify existing accounts.
+1. The configured username and password sign in at `/team-login`.
+2. A wrong password and an unknown username both show an error and do not establish a session.
+3. `/team` and `/team.html` redirect to `/team-login` when signed out.
+4. Admin APIs reject unauthenticated requests; after sign-in they accept the signed cookie.
+5. `/api/auth/team/logout` clears the cookie and protected dashboard access is denied again.
+6. Citizen sign-up, sign-in, reporting and report tracking remain available independently of admin credentials.
 
-## Judge Demo Login
+The tests exercise the login, invalid credentials, signed-cookie tampering, logout, direct-route access, and the fact that admin login/session checks do not connect to the database. A local test does not confirm Vercel production settings; test the deployed Production URL after configuring its environment variables.
 
-These are intentionally public, disposable credentials for the isolated local judge-demo database only. They are not the main administrator's credentials and must never be used for production or a shared deployment.
+## Limitations
 
-| Credential | Demo value |
-| --- | --- |
-| Staff email | `judge-demo@civicsignal.local` |
-| Staff password | `JudgeDemo-CivicSignal-2026!` |
-| Staff login | `http://127.0.0.1:8000/team-login` |
-
-### Run the existing judge-demo database
-
-This workspace has the judge account in `data/judge-demo.db`, separate from the normal `data/civicsignal.db`. From the project root in PowerShell, start the isolated demo with the launcher:
-
-```powershell
-.\run-judge-demo.ps1
-```
-
-The launcher sets the demo database and upload paths each time, then starts the development server. It uses `.venv` when available, otherwise the Python launcher (`py -3`) or `python`. This does not change the database used by the normal app command. Then sign in at `http://127.0.0.1:8000/team-login` with the demo values above. The isolated database and upload directory are local-only and excluded from Git.
-
-### Set up the judge account in a fresh clone
-
-The ignored database is not included in a repository clone. To create the same disposable account locally, set the same isolated paths, run the interactive provisioner, and enter the published demo values when prompted. Then start the server with those paths still set:
-
-```powershell
-$env:CIVICSIGNAL_DATABASE_PATH = Join-Path (Get-Location) "data\judge-demo.db"
-$env:CIVICSIGNAL_UPLOAD_DIR = Join-Path (Get-Location) "data\private-uploads\judge-demo"
-python -m app.provision_team_user
-.\run-judge-demo.ps1
-```
-
-This public demo login is intended only for a local disposable database. Do not put personal or production administrator credentials in this README, screenshots, or demo video. Keep judge testing data synthetic.
-
-## Testing
-
-Run the backend suite from the project root:
-
-```powershell
-python -m pytest -q
-```
-
-Run the JavaScript syntax checks (Node.js required):
-
-```powershell
-node --check static/js/auth.js
-node --check static/js/citizen-session.js
-node --check static/js/api-client.js
-node --check static/js/tracking.js
-node --check static/js/team-dashboard.js
-node --check --experimental-default-type=module static/js/app.js
-```
-
-The last recorded run completed with **46 passed tests and 12 passing subtests**; it emitted an existing Starlette/httpx `TestClient` deprecation warning. Rerun checks after code changes. No frontend build pipeline or automated browser end-to-end suite is configured.
-
-## Security and Privacy
-
-- Citizen report listing, tracking, uploads, and image access are restricted by report ownership. Staff-only workflows require an authenticated staff session.
-- Passwords are stored as scrypt hashes. Session tokens are stored as hashes; cookies are HTTP-only and SameSite Strict. Configure the Secure cookie flag for HTTPS deployments.
-- JPG, PNG, and WebP uploads are validated and re-encoded; the app limits uploads to four images per request and 5 MB per image. Images are served through an authorization-checked endpoint, not directly from `static/`.
-- Treat report descriptions, email addresses, phone numbers, locations, coordinates, and photos as private. Use synthetic accounts, fictional reports, and non-sensitive images in demos.
-- Exclude `.env`, databases, uploads, personal/production credentials, and learner-profile information from public repositories. The documented judge credentials are intentionally public and only usable with a locally provisioned, disposable demo database. Inspect selected files and available Git history before publication.
-- The local database may contain existing accounts. Review accounts through an authorized process; do not expose account identifiers or credentials in repository documentation.
-
-## Current Limitations
-
-- Analysis and duplicate detection are rule-based heuristics, not external AI.
-- The prototype is not connected to a live government or municipal service.
-- SQLite and filesystem uploads are local, single-host storage; production use requires persistent private storage, backups, permissions, and operational controls.
-- Map tiles, Google Fonts, and some visual assets require network access.
-- Cloud storage/database, OAuth, password-reset email, SMS notifications, and external agency integrations are not configured.
-- `requirements.txt` is not version-pinned and no Python dependency lockfile is configured, so installs are not fully reproducible.
-- No automated frontend build or browser end-to-end test suite is configured.
-
-## Hackathon Submission
-
-CivicSignal AI is being prepared for [Build With AI: Basics](https://learn-ai-basics.devpost.com/). This README documents the app but does not establish hackathon eligibility or prove that a learner completed Skill Pack activities.
-
-The challenge requires a new project started from an empty folder during the submission period, actual use of the Devpost Learn Skill Pack in a supported coding agent, and a public repository containing `devpost/scope.md`, `devpost/prd.md`, and `devpost/spec.md`. The workspace cannot verify the project start history or Skill Pack use; the owner must confirm these from genuine records. The planning files retain the original plan and include dated implementation notes.
-
-Submit a **1–3 minute demo video** and a public GitHub, GitLab, or Bitbucket repository URL. Reviewers are not expected to clone and run the project, so the recording should clearly show the app working end-to-end. The project description must explain what it does, who it serves, and what the team learned; the team must write the learning reflection from genuine experience. The local storyboard and factual notes are in [`devpost/submission-draft.md`](devpost/submission-draft.md).
-
-The judging criteria emphasize a coherent product experience (**Design**), a clear and useful idea (**Innovation/Idea**), and a presentation that demonstrates the flow and explains its problem and audience (**Presentation**). No video has been recorded or uploaded, and no public repository URL is verified in this workspace. Check the live challenge page for current deadlines and submission details.
-
-For public repository preparation, include the active app source, static assets, tests, setup files, README, and the three required planning documents. Exclude local databases, private uploads, `.env`, virtual environments, caches, logs, learner-profile files, internal audit reports, personal/production credentials, and real user/report data. The documented judge credentials are intentionally public; the corresponding local database is ignored and must not be published. Keep `App.tsx` and `index.css` until their owner confirms their purpose. Verify Skill Pack redistribution terms before publishing skill files or lock metadata. No repository was initialized or published from this workspace.
+- This is a prototype, not an integration with a municipal agency.
+- Admin authentication uses one configured administrator account; there is no public or multi-user admin registration.
+- Stateless sessions cannot be individually revoked server-side; they expire after eight hours, or immediately become invalid if `ADMIN_SESSION_SECRET` is changed.
+- Citizen/report data on Vercel needs PostgreSQL. Vercel local files are ephemeral.
+- Uploaded photos still use local filesystem storage and need separate durable private storage for production.
+- OAuth login needs provider-side application setup and the corresponding environment variables.
+- No automated browser end-to-end suite or separate frontend bundler/build pipeline is configured.

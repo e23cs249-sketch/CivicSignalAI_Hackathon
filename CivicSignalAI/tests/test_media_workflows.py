@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.main import app
-from app.services.team_auth import provision_team_user
 
 
 class MediaWorkflowTests(unittest.TestCase):
@@ -18,8 +17,12 @@ class MediaWorkflowTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         root = Path(self.temp.name)
         self.env = patch.dict(os.environ, {
+            "DATABASE_URL": "",
             "CIVICSIGNAL_DATABASE_PATH": str(root / "database.db"),
             "CIVICSIGNAL_UPLOAD_DIR": str(root / "private-media"),
+            "ADMIN_USERNAME": "test-admin",
+            "ADMIN_PASSWORD": "valid-admin-password",
+            "ADMIN_SESSION_SECRET": "test-admin-session-secret-with-32-bytes",
         })
         self.env.start()
         self.addCleanup(self.env.stop)
@@ -138,9 +141,8 @@ class MediaWorkflowTests(unittest.TestCase):
         self.assertEqual(denied.status_code, 401)
 
         self.client.post("/api/auth/citizen/logout")
-        provision_team_user("staff@city.test", "valid-admin-password")
         login = self.client.post("/api/auth/team/login", json={
-            "email": "staff@city.test",
+            "username": "test-admin",
             "password": "valid-admin-password",
         })
         self.assertEqual(login.status_code, 200)

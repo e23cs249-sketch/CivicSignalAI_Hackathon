@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import secrets
-import sqlite3
 import time
 import urllib.request
 from urllib.parse import urlencode, urlsplit
@@ -18,7 +17,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app import database
-from app.services.team_auth import normalize_email, hash_password, verify_password
+from app.services.team_auth import hash_password, normalize_email, verify_password
 
 router = APIRouter(prefix="/api/auth/team", tags=["team-auth"])
 citizen_router = APIRouter(prefix="/api/auth/citizen", tags=["citizen-auth"])
@@ -29,8 +28,12 @@ SESSION_SECONDS = 8 * 60 * 60
 CITIZEN_SESSION_SECONDS = 8 * 60 * 60
 LOGIN_WINDOW_SECONDS = 15 * 60
 MAX_LOGIN_ATTEMPTS = 5
+ADMIN_USERNAME_ENV = "ADMIN_USERNAME"
+ADMIN_PASSWORD_ENV = "ADMIN_PASSWORD"
+ADMIN_SESSION_SECRET_ENV = "ADMIN_SESSION_SECRET"
 OAUTH_STATE_SECONDS = 10 * 60
 OAUTH_COOKIE_PATH = "/api/auth/citizen/oauth"
+DUMMY_CITIZEN_PASSWORD_HASH = hash_password("not-a-valid-citizen-password")
 OAUTH_PROVIDERS = {
     "google": {
         "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
@@ -45,22 +48,13 @@ OAUTH_PROVIDERS = {
         "scope": "openid profile email",
     },
 }
-DUMMY_PASSWORD_HASH = hash_password("not-a-valid-team-password")
 
 
 class TeamLoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    email: str = Field(min_length=3, max_length=254)
+    username: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1, max_length=1024)
-
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, value: str) -> str:
-        try:
-            return normalize_email(value)
-        except ValueError as exception:
-            raise ValueError(str(exception)) from exception
 
 
 class CitizenSignupRequest(BaseModel):
@@ -104,18 +98,19 @@ class CitizenLoginRequest(BaseModel):
             raise ValueError(str(exception)) from exception
 
 
-def session_fingerprint(token: str) -> str:
-    return hashlib.sha256(token.encode("ascii")).hexdigest()
-
-
 def current_team_user(request: Request) -> dict[str, str] | None:
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return None
-    session = database.get_team_session(session_fingerprint(token), int(time.time()))
-    if session is None:
+
+    configuration = _admin_configuration()
+    if configuration is None:
         return None
-    return {"email": str(session["email"])}
+    username, _, session_secret = configuration
+    session_username = _verify_team_session(token, session_secret, int(time.time()))
+    if session_username is None or not hmac.compare_digest(session_username, username):
+        return None
+    return {"username": username, "email": username}
 
 
 def citizen_session_fingerprint(token: str) -> str:
@@ -150,6 +145,57 @@ def require_team_user(request: Request) -> dict[str, str]:
     return user
 
 
+def _admin_configuration() -> tuple[str, str, str] | None:
+    username = os.getenv(ADMIN_USERNAME_ENV, "").strip()
+    password = os.getenv(ADMIN_PASSWORD_ENV, "")
+    session_secret = os.getenv(ADMIN_SESSION_SECRET_ENV, "")
+    if not username or not password or len(session_secret.encode("utf-8")) < 32:
+        return None
+    return username, password, session_secret
+
+
+def _create_team_session(username: str, session_secret: str, expires_at: int) -> str:
+    payload = base64.urlsafe_b64encode(
+        json.dumps(
+            {"username": username, "expires_at": expires_at, "nonce": secrets.token_urlsafe(16)},
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).decode("ascii").rstrip("=")
+    signature = hmac.new(
+        session_secret.encode("utf-8"),
+        payload.encode("ascii"),
+        hashlib.sha256,
+    ).digest()
+    encoded_signature = base64.urlsafe_b64encode(signature).decode("ascii").rstrip("=")
+    return f"{payload}.{encoded_signature}"
+
+
+def _verify_team_session(token: str, session_secret: str, now: int) -> str | None:
+    try:
+        if len(token) > 2048:
+            return None
+        payload, encoded_signature = token.split(".")
+        expected_signature = hmac.new(
+            session_secret.encode("utf-8"),
+            payload.encode("ascii"),
+            hashlib.sha256,
+        ).digest()
+        supplied_signature = base64.urlsafe_b64decode(
+            encoded_signature + "=" * (-len(encoded_signature) % 4)
+        )
+        if not hmac.compare_digest(supplied_signature, expected_signature):
+            return None
+        decoded_payload = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4))
+        session = json.loads(decoded_payload)
+        username = session["username"]
+        expires_at = session["expires_at"]
+        if not isinstance(username, str) or not isinstance(expires_at, int) or expires_at <= now:
+            return None
+        return username
+    except (ValueError, TypeError, KeyError, UnicodeError, json.JSONDecodeError):
+        return None
+
+
 def require_same_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     expected = str(request.base_url).rstrip("/")
@@ -167,7 +213,15 @@ def _secure_cookie(request: Request) -> bool:
     configured = os.getenv("CIVICSIGNAL_COOKIE_SECURE")
     if configured is not None:
         return configured.strip().lower() in {"1", "true", "yes", "on"}
-    return request.url.scheme == "https"
+    return request.url.scheme == "https" or os.getenv("VERCEL") == "1"
+
+
+def _secure_admin_cookie(request: Request) -> bool:
+    return (
+        request.url.scheme == "https"
+        or os.getenv("VERCEL") == "1"
+        or _secure_cookie(request)
+    )
 
 
 def _oauth_settings(provider: str) -> dict[str, str] | None:
@@ -396,7 +450,7 @@ def citizen_oauth_callback(
 
     try:
         user = database.get_citizen_user_by_email(normalized_email)
-    except sqlite3.Error:
+    except database.DATABASE_ERRORS:
         logger.exception("Could not find citizen account for %s OAuth sign-in", provider)
         response = _oauth_error_redirect("sign_in_failed")
         _clear_oauth_cookies(response, provider, secure)
@@ -430,49 +484,45 @@ def citizen_oauth_callback(
 
 @router.post("/login")
 def team_login(payload: TeamLoginRequest, request: Request, response: Response) -> dict[str, Any]:
-    now = int(time.time())
-    remote_addr = _remote_address(request)
-    if database.count_recent_team_login_attempts(remote_addr, now - LOGIN_WINDOW_SECONDS) >= MAX_LOGIN_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Too many sign-in attempts. Try again in 15 minutes.")
+    require_same_origin(request)
+    configuration = _admin_configuration()
+    if configuration is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin sign-in is not configured on this server.",
+        )
+    username, password, session_secret = configuration
+    username_matches = hmac.compare_digest(payload.username.encode("utf-8"), username.encode("utf-8"))
+    password_matches = hmac.compare_digest(payload.password.encode("utf-8"), password.encode("utf-8"))
+    if not username_matches or not password_matches:
+        raise HTTPException(status_code=401, detail="Username or password is incorrect.")
 
-    user = database.get_team_user(payload.email)
-    encoded_hash = str(user["password_hash"]) if user else DUMMY_PASSWORD_HASH
-    valid_password = verify_password(payload.password, encoded_hash)
-    if user is None or not bool(user["is_active"]) or not valid_password:
-        database.record_team_login_attempt(remote_addr, now)
-        raise HTTPException(status_code=401, detail="Work email or password is incorrect.")
-
-    database.clear_team_login_attempts(remote_addr)
-    token = secrets.token_urlsafe(32)
-    expires_at = now + SESSION_SECONDS
-    database.create_team_session(session_fingerprint(token), payload.email, expires_at)
+    expires_at = int(time.time()) + SESSION_SECONDS
+    token = _create_team_session(username, session_secret, expires_at)
     response.set_cookie(
         key=SESSION_COOKIE,
         value=token,
         max_age=SESSION_SECONDS,
         httponly=True,
-        secure=_secure_cookie(request),
+        secure=_secure_admin_cookie(request),
         samesite="strict",
         path="/",
     )
-    return {"authenticated": True, "email": payload.email}
+    return {"authenticated": True, "username": username}
 
 
 @router.get("/me")
 def team_session(user: dict[str, str] = Depends(require_team_user)) -> dict[str, object]:
-    return {"authenticated": True, "email": user["email"]}
+    return {"authenticated": True, "username": user["username"]}
 
 
 @router.post("/logout")
-def team_logout(request: Request, response: Response, _: dict[str, str] = Depends(require_team_user)) -> dict[str, bool]:
+def team_logout(request: Request, response: Response) -> dict[str, bool]:
     require_same_origin(request)
-    token = request.cookies.get(SESSION_COOKIE)
-    if token:
-        database.delete_team_session(session_fingerprint(token))
     response.delete_cookie(
         key=SESSION_COOKIE,
         httponly=True,
-        secure=_secure_cookie(request),
+        secure=_secure_admin_cookie(request),
         samesite="strict",
         path="/",
     )
@@ -505,7 +555,7 @@ def citizen_register(payload: CitizenSignupRequest, request: Request, response: 
             True,
             created_at,
         )
-    except sqlite3.IntegrityError:
+    except database.INTEGRITY_ERRORS:
         raise HTTPException(status_code=409, detail="An account already exists for this email.") from None
 
     token = secrets.token_urlsafe(32)
@@ -533,7 +583,7 @@ def citizen_login(payload: CitizenLoginRequest, request: Request, response: Resp
 
     normalized_email = normalize_email(payload.email)
     user = database.get_citizen_user_by_email(normalized_email)
-    encoded_hash = str(user["password_hash"]) if user else DUMMY_PASSWORD_HASH
+    encoded_hash = str(user["password_hash"]) if user else DUMMY_CITIZEN_PASSWORD_HASH
     valid_password = verify_password(payload.password, encoded_hash)
     if user is None or not bool(user["is_active"]) or not valid_password:
         database.record_team_login_attempt(remote_addr, now)

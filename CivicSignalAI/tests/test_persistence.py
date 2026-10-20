@@ -48,7 +48,7 @@ class PersistenceTests(unittest.TestCase):
         self.addCleanup(self.temporary_directory.cleanup)
         self.path = Path(self.temporary_directory.name) / "data" / "test.db"
 
-    def test_initialize_database_creates_report_and_team_auth_tables(self):
+    def test_initialize_database_creates_citizen_and_report_tables(self):
         initialize_database(self.path)
         connection = connect_database(self.path)
         try:
@@ -63,12 +63,10 @@ class PersistenceTests(unittest.TestCase):
                 {
                     "reports",
                     "report_events",
-                    "team_users",
-                    "team_sessions",
-                    "team_login_attempts",
                     "citizen_users",
                     "citizen_sessions",
                     "report_media",
+                    "team_login_attempts",
                 },
             )
             self.assertEqual(connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)

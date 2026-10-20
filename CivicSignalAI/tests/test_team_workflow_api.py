@@ -7,7 +7,6 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app import database
 from app.main import app
-from app.services.team_auth import provision_team_user
 
 
 class TeamWorkflowApiTests(unittest.TestCase):
@@ -15,16 +14,19 @@ class TeamWorkflowApiTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.env = patch.dict(os.environ, {
-            "CIVICSIGNAL_DATABASE_PATH": str(Path(self.temp.name) / "test.db")
+            "DATABASE_URL": "",
+            "CIVICSIGNAL_DATABASE_PATH": str(Path(self.temp.name) / "test.db"),
+            "ADMIN_USERNAME": "staff-admin",
+            "ADMIN_PASSWORD": " correct horse battery staple ",
+            "ADMIN_SESSION_SECRET": "test-admin-session-secret-with-32-bytes",
         })
         self.env.start()
         self.addCleanup(self.env.stop)
         self.client_context = TestClient(app, raise_server_exceptions=False)
         self.client = self.client_context.__enter__()
         self.addCleanup(self.client_context.__exit__, None, None, None)
-        self.staff_email = "staff@city.gov"
+        self.staff_username = "staff-admin"
         self.staff_password = " correct horse battery staple "
-        provision_team_user(self.staff_email, self.staff_password)
         citizen_password = "valid-citizen-password"
         citizen = self.client.post("/api/auth/citizen/register", json={
             "full_name": "Workflow Citizen",
@@ -39,7 +41,7 @@ class TeamWorkflowApiTests(unittest.TestCase):
 
     def login_team(self):
         response = self.client.post("/api/auth/team/login", json={
-            "email": self.staff_email,
+            "username": self.staff_username,
             "password": self.staff_password,
         })
         self.assertEqual(response.status_code, 200, response.text)
@@ -81,6 +83,7 @@ class TeamWorkflowApiTests(unittest.TestCase):
         self.assertIn("samesite=strict", cookie_header)
         self.assertIn("max-age=28800", cookie_header)
         self.assertTrue(login.json()["authenticated"])
+        self.assertEqual(login.json()["username"], self.staff_username)
         self.assertEqual(self.client.get("/api/auth/team/me").status_code, 200)
         self.assertEqual(self.client.get("/team").status_code, 200)
 
@@ -89,41 +92,90 @@ class TeamWorkflowApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/auth/team/me").status_code, 401)
         self.assertEqual(self.client.get("/api/reports").status_code, 401)
 
-    def test_invalid_team_login_is_generic_and_rate_limited(self):
-        for _ in range(5):
-            response = self.client.post("/api/auth/team/login", json={
-                "email": self.staff_email,
-                "password": "incorrect password",
+    def test_admin_cookie_is_secure_on_vercel(self):
+        with patch.dict(os.environ, {
+            "VERCEL": "1",
+            "CIVICSIGNAL_COOKIE_SECURE": "false",
+        }):
+            login = self.client.post("/api/auth/team/login", json={
+                "username": self.staff_username,
+                "password": self.staff_password,
             })
-            self.assertEqual(response.status_code, 401)
-            self.assertEqual(response.json()["detail"], "Work email or password is incorrect.")
 
-        limited = self.client.post("/api/auth/team/login", json={
-            "email": self.staff_email,
-            "password": self.staff_password,
-        })
-        self.assertEqual(limited.status_code, 429)
+        self.assertEqual(login.status_code, 200, login.text)
+        self.assertIn("secure", login.headers["set-cookie"].lower())
 
-    def test_inactive_staff_account_cannot_create_a_session(self):
-        connection = database.connect_database()
-        try:
-            connection.execute(
-                "UPDATE team_users SET is_active = 0 WHERE email = ?",
-                (self.staff_email,),
-            )
-            connection.commit()
-        finally:
-            connection.close()
+    def test_https_cookie_stays_secure_when_setting_is_false(self):
+        with patch.dict(os.environ, {"CIVICSIGNAL_COOKIE_SECURE": "false"}):
+            with TestClient(
+                app,
+                base_url="https://testserver",
+                raise_server_exceptions=False,
+            ) as https_client:
+                login = https_client.post(
+                    "/api/auth/team/login",
+                    json={
+                        "username": self.staff_username,
+                        "password": self.staff_password,
+                    },
+                )
 
-        response = self.client.post("/api/auth/team/login", json={
-            "email": self.staff_email,
-            "password": self.staff_password,
-        })
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json()["detail"], "Work email or password is incorrect.")
-        self.assertNotIn("set-cookie", response.headers)
+        self.assertEqual(login.status_code, 200, login.text)
+        self.assertIn("secure", login.headers["set-cookie"].lower())
+
+    def test_admin_login_and_session_do_not_access_the_database(self):
+        with patch.object(database, "connect_database", side_effect=AssertionError("database used")):
+            login = self.login_team()
+            self.assertEqual(login.status_code, 200)
+            self.assertEqual(self.client.get("/api/auth/team/me").status_code, 200)
+            self.assertEqual(self.client.get("/team").status_code, 200)
+
+    def test_incorrect_admin_credentials_are_rejected(self):
+        for credentials in (
+            {"username": self.staff_username, "password": "incorrect password"},
+            {"username": "unknown-admin", "password": self.staff_password},
+        ):
+            with self.subTest(credentials="invalid"):
+                response = self.client.post("/api/auth/team/login", json=credentials)
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.json()["detail"], "Username or password is incorrect.")
+                self.assertNotIn("set-cookie", response.headers)
+        self.assertEqual(self.client.get("/api/auth/team/me").status_code, 401)
+        dashboard = self.client.get("/team", follow_redirects=False)
+        self.assertEqual(dashboard.status_code, 303)
+        self.assertIn("/team-login", dashboard.headers["location"])
+
+    def test_tampered_admin_session_is_rejected(self):
+        self.login_team()
+        token = self.client.cookies.get("civicsignal_team_session")
+        self.client.cookies.set("civicsignal_team_session", token + "tampered")
+
         self.assertEqual(self.client.get("/api/auth/team/me").status_code, 401)
         self.assertEqual(self.client.get("/team", follow_redirects=False).status_code, 303)
+
+    def test_missing_admin_configuration_fails_closed(self):
+        with patch.dict(os.environ, {
+            "ADMIN_USERNAME": "",
+            "ADMIN_PASSWORD": "",
+            "ADMIN_SESSION_SECRET": "",
+        }):
+            response = self.client.post("/api/auth/team/login", json={
+                "username": self.staff_username,
+                "password": self.staff_password,
+            })
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("not configured", response.json()["detail"])
+        self.assertNotIn("set-cookie", response.headers)
+
+    def test_cross_origin_admin_login_is_rejected(self):
+        response = self.client.post(
+            "/api/auth/team/login",
+            json={"username": self.staff_username, "password": self.staff_password},
+            headers={"Origin": "https://attacker.example"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("set-cookie", response.headers)
 
     def test_cross_origin_status_update_is_rejected(self):
         self.login_team()
@@ -189,15 +241,27 @@ class TeamWorkflowApiTests(unittest.TestCase):
         self.assertEqual(len(tracking["timeline"]), 1)
 
 
-class TeamAccountProvisioningTests(unittest.TestCase):
+class TeamAuthenticationSchemaTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.database_path = str(Path(self.temp.name) / "accounts.db")
 
-    def test_app_start_does_not_create_a_team_account(self):
+    def test_app_does_not_create_admin_auth_tables(self):
         with patch.dict(os.environ, {
+            "DATABASE_URL": "",
             "CIVICSIGNAL_DATABASE_PATH": self.database_path,
         }):
             with TestClient(app):
-                self.assertIsNone(database.get_team_user("staff@city.gov"))
+                connection = database.connect_database()
+                try:
+                    tables = {
+                        row["name"] for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        ).fetchall()
+                    }
+                finally:
+                    connection.close()
+                self.assertNotIn("team_users", tables)
+                self.assertNotIn("team_sessions", tables)
+                self.assertIn("team_login_attempts", tables)

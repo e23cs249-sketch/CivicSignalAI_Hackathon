@@ -5,9 +5,6 @@ import hashlib
 import hmac
 import re
 import secrets
-from datetime import datetime, timezone
-
-from app import database
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PASSWORD_MIN_LENGTH = 12
@@ -48,11 +45,3 @@ def verify_password(password: str, encoded_hash: str) -> bool:
         return hmac.compare_digest(actual, expected)
     except (ValueError, TypeError, UnicodeError):
         return False
-
-
-def provision_team_user(email: str, password: str) -> str:
-    normalized_email = normalize_email(email)
-    password_hash = hash_password(password)
-    created_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    database.create_team_user(normalized_email, password_hash, created_at)
-    return normalized_email
