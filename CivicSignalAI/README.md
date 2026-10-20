@@ -82,7 +82,18 @@ Set these server-side environment variables:
 | `ADMIN_PASSWORD` | The corresponding administrator password |
 | `ADMIN_SESSION_SECRET` | A random secret of at least 32 bytes, used to sign the administrator session cookie |
 
-There are no default credentials. If any setting is missing or the session secret is too short, the admin login fails closed and reports that it is not configured. Do not use a `NEXT_PUBLIC_`, `VITE_`, or other client-exposed variable, and never place credentials in HTML, JavaScript, Git, or logs.
+Documentation-only example values:
+
+```text
+Admin username: civic_admin
+Admin password: Civic@Admin#2026!X7
+```
+
+These are examples only; they are not automatically configured credentials or defaults. The admin login will accept them only if the project owner explicitly sets the exact matching `ADMIN_USERNAME` and `ADMIN_PASSWORD` values in **Vercel → Project Settings → Environment Variables → Production**, then redeploys. Do not use these example credentials for a real deployment; choose a unique, strong password instead.
+
+Generate `ADMIN_SESSION_SECRET` as a random secret of at least 32 bytes. In PowerShell, for example: `py -c "import secrets; print(secrets.token_urlsafe(48))"`. Store it only as the server-side Vercel environment variable. For Production, `DATABASE_URL` must contain the connection URL for the project's production PostgreSQL database; it is required for citizen accounts and reporting, not admin authentication.
+
+There are no built-in credentials. If any setting is missing or the session secret is too short, the admin login fails closed and reports that it is not configured. Do not use a `NEXT_PUBLIC_`, `VITE_`, or other client-exposed variable, and never place credentials in application source code or logs.
 
 The server compares the supplied username and password against the configured values. On success it sets an expiring, signed, `HttpOnly`, `SameSite=Strict` cookie, marked `Secure` on HTTPS/Vercel. Admin login, session checks, and logout do not read or write the database. Direct requests to `/team`, `/team.html`, and admin APIs are checked on the server. Logout clears the browser cookie. Because sessions are stateless, an already copied cookie remains valid until its eight-hour expiry; changing `ADMIN_SESSION_SECRET` invalidates existing cookies.
 
